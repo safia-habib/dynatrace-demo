@@ -1,0 +1,47 @@
+---
+- name: Delete Spark Pod
+  hosts: localhost
+  tasks:
+  - name: Get Pods with Label version=3.1.1
+    kubernetes.core.k8s info:
+      api version: v1
+      kind: Pod
+      label selectors:
+        - version = 3.1.1
+  register: pod list
+- name: Extracting Prod_list metadata
+  set fact:
+    pod metadata: "{{ pod_list. resources [0] .metadata } }"
+- name: Print Pod Names
+  debug:
+   msg: "Pod List: {{ pod_metadata.name }}, Namespace: {{ pod_metadata. namespace} }"
+- name: Delete the pods
+  kubernetes.core.k8s:
+    state: absent 
+    api version: v1
+    kind: Pod
+    namespace: "{ { pod_metadata. namespace } }"
+    name: "{ { pod_metadata.name } }"
+- name: Delete wrong spark Application
+  kubernetes.core. k8s:
+    state: absent
+    api_version: sparkoperator.k8s.io/vlbeta2
+    kind: SparkApplication
+    name: spark-pi-custom-wrong-resource
+    namespace: default
+- name: Delete right Spark Application
+  kubernetes.core.k8s:
+    state: absent
+    api version: sparkoperator.k8s.io/vlbeta2
+    kind: SparkApplication
+    name: spark-pi-custom-resource
+    namespace: default
+- name: Download the right yaml file
+  ansible.builtin.get_url:
+    dest: ~/spark-pi-custom-resource.yaml
+    url: https://raw.githubusercontent.com/safia-habib/catchallrepo/main/spark-pi-custom-resource. yaml
+    mode: '0664'
+- name: Apply the yaml
+  kubernetes. core. k8s:
+    state: present
+    src: ~/spark-pi-custom-resource. yaml
